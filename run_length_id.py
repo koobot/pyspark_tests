@@ -39,9 +39,8 @@ want = spark.createDataFrame(
 w = Window.partitionBy('part_col').orderBy('order_col')
 df = (have
       .withColumn("prev_group", F.lag('group_col', 1, default="first").over(w))
-      .withColumn('state_num', F.when(F.col('prev_group') == "first", 1).when(F.col('group_col') == F.col('prev_group'), 0).otherwise(1))
+      .withColumn('state_num', F.when(F.col('group_col') == F.col('prev_group'), 0).otherwise(1))
       .withColumn('rleid', F.sum('state_num').over(w)))
-# can drop columns if you want to be clean
 
 df.show()
 # +--------+---+---------+---------+----------+---------+-----+
@@ -100,6 +99,10 @@ want.orderBy('id').show()
 # |       y|  l|       r2|        7|    3|
 # |       y|  m|       s4|        8|    4|
 # +--------+---+---------+---------+-----+
+
+# Compare dataframes
+assert clean.orderBy('id').exceptAll(want.orderBy('id')).count() == 0
+# want.orderBy('id').exceptAll(clean.orderBy('id')).show()
 
 # Tried
 # df = have.withColumn("rleid", F.dense_rank().over(Window.orderBy('group_col')))
