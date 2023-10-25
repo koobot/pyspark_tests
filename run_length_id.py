@@ -39,7 +39,7 @@ want = spark.createDataFrame(
 w = Window.partitionBy('part_col').orderBy('order_col')
 df = (have
       .withColumn("prev_group", F.lag('group_col', 1, default="first").over(w))
-      .withColumn('state_num', F.when(F.col('prev_group') == "first", 1).when(F.col('group_col') == F.col('prev_group'), 0).otherwise(2))
+      .withColumn('state_num', F.when(F.col('prev_group') == "first", 1).when(F.col('group_col') == F.col('prev_group'), 0).otherwise(1))
       .withColumn('rleid', F.sum('state_num').over(w)))
 # can drop columns if you want to be clean
 
@@ -63,23 +63,23 @@ df.show()
 # +--------+---+---------+---------+----------+---------+-----+
 
 clean = df.drop('prev_group', 'state_num')
-# clean.show()
+clean.show()
 # +--------+---+---------+---------+-----+
 # |part_col| id|group_col|order_col|rleid|
 # +--------+---+---------+---------+-----+
 # |       x|  a|       r1|        1|    1|
 # |       x|  b|       r1|        2|    1|
 # |       x|  c|       r1|        3|    1|
-# |       x|  d|       s3|        4|    3|
-# |       x|  e|       s3|        5|    3|
-# |       x|  f|       s4|        6|    5|
-# |       x|  g|       r1|        7|    7|
+# |       x|  d|       s3|        4|    2|
+# |       x|  e|       s3|        5|    2|
+# |       x|  f|       s4|        6|    3|
+# |       x|  g|       r1|        7|    4|
 # |       y|  h|       r2|        2|    1|
-# |       y|  i|       s3|        3|    3|
-# |       y|  j|       s3|        4|    3|
-# |       y|  k|       r2|        5|    5|
-# |       y|  l|       r2|        7|    5|
-# |       y|  m|       s4|        8|    7|
+# |       y|  i|       s3|        3|    2|
+# |       y|  j|       s3|        4|    2|
+# |       y|  k|       r2|        5|    3|
+# |       y|  l|       r2|        7|    3|
+# |       y|  m|       s4|        8|    4|
 # +--------+---+---------+---------+-----+
 
 want.orderBy('id').show()
