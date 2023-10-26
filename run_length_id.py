@@ -1,6 +1,6 @@
 # Want to replicate data.table's rleid
 # Group IDs don't have to be contiguous
-# adapted from https://stackoverflow.com/questions/63909778/assign-id-based-on-another-column-value
+# From answer to my question: https://stackoverflow.com/a/77356734/19825782
 import pyspark.sql.functions as F
 from pyspark.sql.window import Window
 
@@ -37,31 +37,29 @@ want = spark.createDataFrame(
     ['part_col', 'id', 'group_col', 'order_col', 'rleid'])
 
 w = Window.partitionBy('part_col').orderBy('order_col')
-df = (have
-      .withColumn("prev_group", F.lag('group_col', 1, default="first").over(w))
-      .withColumn('state_num', F.when(F.col('group_col') == F.col('prev_group'), 0).otherwise(1))
-      .withColumn('rleid', F.sum('state_num').over(w)))
-
+cond = F.lag('group_col').over(w) != F.col('group_col')
+df = have.withColumn('rleid', F.coalesce(F.sum(cond.cast('int')).over(w), F.lit(0)))
 df.show()
-# +--------+---+---------+---------+----------+---------+-----+
-# |part_col| id|group_col|order_col|prev_group|state_num|rleid|
-# +--------+---+---------+---------+----------+---------+-----+
-# |       x|  a|       r1|        1|     first|        1|    1|
-# |       x|  b|       r1|        2|        r1|        0|    1|
-# |       x|  c|       r1|        3|        r1|        0|    1|
-# |       x|  d|       s3|        4|        r1|        2|    3|
-# |       x|  e|       s3|        5|        s3|        0|    3|
-# |       x|  f|       s4|        6|        s3|        2|    5|
-# |       x|  g|       r1|        7|        s4|        2|    7|
-# |       y|  h|       r2|        2|     first|        1|    1|
-# |       y|  i|       s3|        3|        r2|        2|    3|
-# |       y|  j|       s3|        4|        s3|        0|    3|
-# |       y|  k|       r2|        5|        s3|        2|    5|
-# |       y|  l|       r2|        7|        r2|        0|    5|
-# |       y|  m|       s4|        8|        r2|        2|    7|
-# +--------+---+---------+---------+----------+---------+-----+
+# +--------+---+---------+---------+-----+
+# |part_col| id|group_col|order_col|rleid|
+# +--------+---+---------+---------+-----+
+# |       x|  a|       r1|        1|    0|
+# |       x|  b|       r1|        2|    0|
+# |       x|  c|       r1|        3|    0|
+# |       x|  d|       s3|        4|    1|
+# |       x|  e|       s3|        5|    1|
+# |       x|  f|       s4|        6|    2|
+# |       x|  g|       r1|        7|    3|
+# |       y|  h|       r2|        2|    0|
+# |       y|  i|       s3|        3|    1|
+# |       y|  j|       s3|        4|    1|
+# |       y|  k|       r2|        5|    2|
+# |       y|  l|       r2|        7|    2|
+# |       y|  m|       s4|        8|    3|
+# +--------+---+---------+---------+-----+
 
-clean = df.drop('prev_group', 'state_num')
+# This is just so the assert statements will work - but unnecssary in practice
+clean = df.withColumn("rleid", F.col("rleid") + 1)
 clean.show()
 # +--------+---+---------+---------+-----+
 # |part_col| id|group_col|order_col|rleid|
