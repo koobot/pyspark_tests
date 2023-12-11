@@ -82,7 +82,8 @@ df3.show()
   # |  e|       y|        2|   14|   1|
   # |  d|       y|        1|   13|   2|
   # +---+--------+---------+-----+----+
-
+# multiple columns
+df32 = have.withColumn('rank', F.rank().over(w.orderBy(*[F.desc_nulls_last(c) for c in ["order_col", "value"]])))
 
 # Ascending nulls last
 df4 = have.withColumn('rank', F.rank().over(w.orderBy(F.col("order_col").asc_nulls_last())))
