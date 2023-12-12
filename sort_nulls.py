@@ -121,3 +121,38 @@ df6.show()
   # |  d|       y|        1|   13|   1|
   # |  e|       y|        2|   14|   2|
   # +---+--------+---------+-----+----+
+
+# Test descending and ascending together, when both lots have nulls
+have2 = spark.createDataFrame(
+    [('a', 'x', 3, 'p'),
+     ('b', 'x', 3, None),
+     ('c', 'x', None, 'm'),
+     ('d', 'y', 1, 't'),
+     ('e', 'y', 1, 'a')],
+    ['id', 'part_col', 'order_col', 'value'])
+
+w = Window.partitionBy("part_col")
+# df7 = have2.withColumn('rank', F.rank().over(w.orderBy(F.col("order_col").desc_nulls_last(), F.col("value").asc_nulls_last()))) # same
+df7 = have2.withColumn('rank', F.rank().over(w.orderBy(*[F.desc_nulls_last(c) for c in ["order_col"]], F.col("value").asc_nulls_last())))
+df7.show()
+    # +---+--------+---------+-----+----+
+    # | id|part_col|order_col|value|rank|
+    # +---+--------+---------+-----+----+
+    # |  a|       x|        3|    p|   1|
+    # |  b|       x|        3| NULL|   2|
+    # |  c|       x|     NULL|    m|   3|
+    # |  e|       y|        1|    a|   1|
+    # |  d|       y|        1|    t|   2|
+    # +---+--------+---------+-----+----+
+# without nulls last: desc() puts nulls last, but asc() does not
+df8 = have2.withColumn('rank', F.rank().over(w.orderBy(*[F.desc(c) for c in ["order_col"]], F.col("value").asc())))
+df8.show()
+    # +---+--------+---------+-----+----+
+    # | id|part_col|order_col|value|rank|
+    # +---+--------+---------+-----+----+
+    # |  b|       x|        3| NULL|   1|
+    # |  a|       x|        3|    p|   2|
+    # |  c|       x|     NULL|    m|   3|
+    # |  e|       y|        1|    a|   1|
+    # |  d|       y|        1|    t|   2|
+    # +---+--------+---------+-----+----+
