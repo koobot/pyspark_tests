@@ -54,7 +54,7 @@ df2.show() # Takes session timezone - confirmed with display()
     # | has_null|2024-01-19 05:09:01|
     # +---------+-------------------+
 
-# Don't need to convert ts to unix before averaging - yay.
+# Don't need to convert ts to unix before averaging - yay. `.withColumn('unix_ts', F.unix_timestamp('ts'))`
 # These methods all seem to preserve the session timezone as expected - yay.
 df2_agg = (df2
            .groupBy('group')
