@@ -28,3 +28,7 @@ display(df_test.filter('rand_seed != rand_seed_4'))
   # Query returned no results
 
 # So for dummy purposes, the random number with the same seed seems to be somewhat deterministic
+
+# Tried to use column to set seed - didn't work
+df3 = df.withColumn("rand_seed11111", F.rand(seed=F.col('id')))
+  # PySparkTypeError: [NOT_ITERABLE] Column is not iterable.
